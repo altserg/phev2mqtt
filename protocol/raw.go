@@ -142,7 +142,7 @@ func ValidateAndDecodeMessage(message []byte) ([]byte, byte, []byte) {
 		xor ^= 1
 		msg = XorMessageWith(message, xor)
 		if !ValidateChecksum(msg) {
-			fmt.Printf("Bad sum for (%s)\n", hex.EncodeToString(message))
+			log.Debugf("Bad sum for (%s)\n", hex.EncodeToString(message))
 			return nil, 0, nil
 		}
 	}

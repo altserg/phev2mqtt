@@ -47,6 +47,12 @@ var rootCmd = &cobra.Command{
 			log.SetFormatter(&log.TextFormatter{
 				FullTimestamp: true,
 			})
+		} else {
+			log.SetFormatter(&log.TextFormatter{
+				FullTimestamp: false,
+				DisableColors: true,
+				DisableTimestamp: true,
+			})
 		}
 	},
 
