@@ -189,7 +189,7 @@ func (c *Client) SetRegister(register byte, value []byte) error {
 		}
 	}
 	xor := byte(0)
-	timer := time.After(10 * time.Second)
+	timer := time.After(3 * time.Second)
 	l := c.AddListener()
 	defer c.RemoveListener(l)
 SETREG:
@@ -197,13 +197,16 @@ SETREG:
 	for {
 		select {
 		case <-timer:
+			c.Close()
 			return fmt.Errorf("timed out attempting to set register %02x", register)
 		case msg, ok := <-l.C:
 			if !ok {
+				c.Close()
 				return fmt.Errorf("listener channel closed")
 			}
 			if msg.Type == protocol.CmdInBadEncoding {
 				xor = msg.Data[0]
+				c.Close()
 				goto SETREG
 			}
 			if msg.Type == protocol.CmdInResp && msg.Ack == protocol.Ack && msg.Register == register {
