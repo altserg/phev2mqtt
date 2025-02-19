@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"encoding/hex"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -133,7 +132,7 @@ func ValidateChecksum(message []byte) bool {
 // plus any trailing data.
 func ValidateAndDecodeMessage(message []byte) ([]byte, byte, []byte) {
 	if len(message) < 4 {
-		fmt.Printf("Short msg\n")
+		log.Debugf("Short msg\n")
 		return nil, 0, nil
 	}
 	xor := message[2]
