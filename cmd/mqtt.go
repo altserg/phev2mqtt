@@ -188,6 +188,7 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 		if m.enabled {
 			if err := m.handlePhev(cmd); err != nil {
 				log.Error(err)
+				time.Sleep(time.Second*600)
 			}
 			// Publish as offline if last connection was >30s ago.
 			if time.Now().Sub(m.lastConnect) > 30*time.Second {
@@ -583,7 +584,7 @@ func (m *mqttClient) publishHomeAssistantDiscovery(vin, topic, name string) {
 		"unit_of_measurement": "%",
 		"avty_t": "~/available",
 		"unique_id": "__VIN___battery_level",
-		"value_template": "{{ value_json if (value_json < 255 and value_json > 5) else states(entity_id) }}"
+		"value_template": "{{ value_json | int(0) if (value_json | int(0) < 255 and value_json | int(0) > 5) else states(entity_id) }}"
 		"dev": {
 			"name": "PHEV __VIN__",
 			"identifiers": ["phev-__VIN__"],
@@ -597,6 +598,7 @@ func (m *mqttClient) publishHomeAssistantDiscovery(vin, topic, name string) {
 		"unit_of_measurement": "min",
 		"avty_t": "~/available",
 		"unique_id": "__VIN___battery_charge_remaining",
+		"value_template": "{{ value_json | int(0) if (value_json | int(0) < 1000) else states(entity_id) }}"
 		"dev": {
 			"name": "PHEV __VIN__",
 			"identifiers": ["phev-__VIN__"],
