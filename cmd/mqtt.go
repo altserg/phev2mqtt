@@ -584,7 +584,6 @@ func (m *mqttClient) publishHomeAssistantDiscovery(vin, topic, name string) {
 		"unit_of_measurement": "%",
 		"avty_t": "~/available",
 		"unique_id": "__VIN___battery_level",
-		"value_template": "{{ value_json | int(0) if (value_json | int(0) < 255 and value_json | int(0) > 5) else states(entity_id) }}"
 		"dev": {
 			"name": "PHEV __VIN__",
 			"identifiers": ["phev-__VIN__"],
