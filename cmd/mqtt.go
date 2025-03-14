@@ -200,9 +200,9 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 					log.Errorf("Error restarting wifi: %v", err)
 				}
 			}
-//			if cache := m.mqttData["/vin"]; cache != "" {
-//				m.publishHomeAssistantDiscovery( cache, m.prefix, "Phev")
-//			}
+			if cache := m.mqttData["/vin"]; cache != "" {
+				m.publishHomeAssistantDiscovery( cache, m.prefix, "Phev")
+			}
 		}
 
 		time.Sleep(time.Second)
@@ -776,7 +776,14 @@ func (m *mqttClient) publishHomeAssistantDiscovery(vin, topic, name string) {
 		for in, out := range mappings {
 			d = strings.Replace(d, in, out, -1)
 		}
-		m.client.Publish(topic, 0, true, d)
+		t := m.client.Publish(topic, 0, true, d)
+		go func() {
+		//_ = t.Wait() // Can also use '<-t.Done()' in releases > 1.2.0
+			<-t.Done()
+			if t.Error() != nil {
+				log.Error(t.Error())
+			}
+		}()
 		//m.client.Publish(topic, 0, false, "{}")
 	}
 }
