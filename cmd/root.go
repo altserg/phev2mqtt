@@ -17,12 +17,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"fmt"
-	log "github.com/sirupsen/logrus"
-        "github.com/wercker/journalhook"
-	"github.com/spf13/cobra"
 	"os"
-
+	log "github.com/sirupsen/logrus"
+	"github.com/wercker/journalhook"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -81,8 +79,8 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.phev2mqtt.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "verbosity", "v", "info", "logging level to use")
-	rootCmd.PersistentFlags().BoolVarP(&logTimes, "log_timestamps", "t", false, "logging with timestamps")
-	rootCmd.PersistentFlags().BoolVarP(&logSyslog, "log_syslog", "s", false, "logging to syslog instead of console")
+	rootCmd.PersistentFlags().BoolVarP(&logTimes, "log_timestamps", "t", false, "coloured logging with timestamps")
+	rootCmd.PersistentFlags().BoolVarP(&logSyslog, "log_syslog", "s", false, "plain logging to syslog instead of console")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -109,6 +107,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		log.Infof( "Using config file: %s", viper.ConfigFileUsed())
 	}
 }
