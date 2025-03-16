@@ -130,8 +130,9 @@ type mqttClient struct {
 
 	prefix string
 
-	haDiscovery       bool
-	haDiscoveryPrefix string
+	haDiscovery		bool
+	haDiscoveryPrefix	string
+	haPublishedDiscovery	bool
 
 	climate *climate
 	enabled bool
@@ -158,7 +159,8 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 
 //	os.Exit( 3 )
 
-	m.lastError = nil
+	m.lastError 		= nil
+	m.haPublishedDiscovery	= false
 
 	m.options = mqtt.NewClientOptions().
 		AddBroker(mqttServer).
@@ -207,9 +209,9 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 				}
 			}
 			// Send HASS discovery info for every vechicle connection attempt
-			if cache := m.mqttData["/vin"]; cache != "" {
-				m.publishHomeAssistantDiscovery( cache, m.prefix, "Phev")
-			}
+//			if cache := m.mqttData["/vin"]; cache != "" {
+//				m.publishHomeAssistantDiscovery( cache, m.prefix, "Phev")
+//			}
 		}
 
 		time.Sleep(time.Second)
@@ -476,13 +478,15 @@ func (m *mqttClient) publishRegister(msg *protocol.PhevMessage) {
 	}
 }
 
+
 // Publish home assistant discovery message.
 // Uses the vehicle VIN, so sent after VIN discovery.
 func (m *mqttClient) publishHomeAssistantDiscovery(vin, topic, name string) {
 
-	if !m.haDiscovery {
+	if m.haPublishedDiscovery || !m.haDiscovery {
 		return
 	}
+	m.haPublishedDiscovery = true
 	discoveryData := map[string]string{
 		// Doors.
 		"%s/binary_sensor/%s_door_locked/config": `{
