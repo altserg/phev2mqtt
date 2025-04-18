@@ -152,7 +152,7 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 	m.prefix		 = viper.GetString("mqtt_topic_prefix")
 	m.haDiscovery		 = viper.GetBool("ha_discovery")
 	m.haDiscoveryPrefix	 = viper.GetString("ha_discovery_prefix")
-	m.updateInterval 	 = viper.GetDuration("update_interval")
+	m.updateInterval	 = viper.GetDuration("update_interval")
 	wifiRestartTime		:= viper.GetDuration("wifi_restart_time")
 
 	log.Infof("MQTT server: %s, Update interval: %s, WiFi restart interval: %s, WiFi retry time %s, WiFi restart command %s", mqttServer, m.updateInterval, wifiRestartTime, viper.GetDuration("wifi_restart_retry_time"), viper.GetString("wifi_restart_command") )
@@ -463,7 +463,7 @@ func (m *mqttClient) publishRegister(msg *protocol.PhevMessage) {
 		if (reg.Level > 5) && (reg.Level < 255) {
 			m.publish("/battery/level", fmt.Sprintf("%d", reg.Level))
 		} else {
-				if cache := m.mqttData["/battery/level"]; cache != "" {
+			if cache := m.mqttData["/battery/level"]; cache != "" {
 				m.publish("/battery/level", cache )
 				log.Debugf("Ignoring battery level reading: %v, publishing last best known: %v", reg.Level, cache)
 			}
