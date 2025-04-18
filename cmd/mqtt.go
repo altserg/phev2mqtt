@@ -141,8 +141,9 @@ type mqttClient struct {
 
 	prefix string
 
-	haDiscovery       bool
-	haDiscoveryPrefix string
+	haDiscovery		bool
+	haDiscoveryPrefix	string
+	haPublishedDiscovery	bool
 
 	climate *climate
 	enabled bool
@@ -154,7 +155,7 @@ func (m *mqttClient) topic(topic string) string {
 
 func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 	m.enabled = true // Default.
-  m.lastError = nil
+
 	mqttServer := viper.GetString("mqtt_server")
 	mqttUsername := viper.GetString("mqtt_username")
 	mqttPassword := viper.GetString("mqtt_password")
@@ -165,6 +166,9 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 	m.updateInterval = viper.GetDuration("update_interval")
 
 	wifiRestartTime := viper.GetDuration("wifi_restart_time")
+
+	m.haPublishedDiscovery = false
+	m.lastError = nil
 
 	m.options = mqtt.NewClientOptions().
 		AddBroker(mqttServer).
@@ -488,14 +492,12 @@ func (m *mqttClient) publishRegister(msg *protocol.PhevMessage) {
 
 // Publish home assistant discovery message.
 // Uses the vehicle VIN, so sent after VIN discovery.
-var publishedDiscovery = false
-
 func (m *mqttClient) publishHomeAssistantDiscovery(vin, topic, name string) {
 
-	if publishedDiscovery || !m.haDiscovery {
+	if m.haPublishedDiscovery || !m.haDiscovery {
 		return
 	}
-	publishedDiscovery = true
+	m.haPublishedDiscovery = true
 	discoveryData := map[string]string{
 		// Doors.
 		"%s/binary_sensor/%s_door_locked/config": `{
@@ -798,7 +800,9 @@ func (m *mqttClient) publishHomeAssistantDiscovery(vin, topic, name string) {
 		for in, out := range mappings {
 			d = strings.Replace(d, in, out, -1)
 		}
-		m.client.Publish(topic, 0, false, d)
+		if token := m.client.Publish(topic, 0, true, d); token.Wait() && token.Error() != nil {
+			log.Error( token.Error() )
+		}
 		//m.client.Publish(topic, 0, false, "{}")
 	}
 }
