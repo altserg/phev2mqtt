@@ -115,16 +115,18 @@ func restartWifi(cmd *cobra.Command) error {
 
 	restartCommand := viper.GetString("wifi_restart_command")
 	if restartCommand == "" {
-		log.Infof("wifi restart disabled")
+		//log.Infof("wifi restart disabled")
 		return nil
 	}
 
-	log.Infof("Attempting to restart wifi")
+	log.Debugf("Attempting to restart wifi")
 
-	restartCmd := exec.Command("sh", "-c", restartCommand)
+	restartCmd := exec.Command("/bin/sh", "-c", restartCommand)
 
 	stdoutStderr, err := restartCmd.CombinedOutput()
-	log.Infof("Output from wifi restart: %s", stdoutStderr)
+	if len( stdoutStderr ) > 0 {
+		log.Infof("Output from wifi restart: %s", stdoutStderr)
+	}
 	return err
 }
 
@@ -164,6 +166,11 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 	m.haDiscoveryPrefix	 = viper.GetString("ha_discovery_prefix")
 	m.updateInterval	 = viper.GetDuration("update_interval")
 	wifiRestartTime		:= viper.GetDuration("wifi_restart_time")
+	restartCommand		:= viper.GetString("wifi_restart_command")
+
+	if restartCommand == "" {
+		log.Infof("WiFi restart disabled")
+	}
 
 	m.haPublishedDiscovery	= false
 	m.lastError		= nil
@@ -181,6 +188,7 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 	if token := m.client.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
+
 
 	if !mqttDisableSet {
 		if token := m.client.Subscribe(m.topic("/set/#"), 0, nil); token.Wait() && token.Error() != nil {
