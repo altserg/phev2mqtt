@@ -197,9 +197,6 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 	} else {
 		log.Info("Setting vechicle registers via MQTT is disabled")
 	}
-	if token := m.client.Subscribe(m.topic("/set/#"), 0, nil); token.Wait() && token.Error() != nil {
-		return token.Error()
-	}
 	if token := m.client.Subscribe(m.topic("/connection"), 0, nil); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
@@ -216,7 +213,7 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 				if m.lastError == nil || m.lastError.Error() != err.Error() {
 					log.Error(err)
 					m.lastError = err
-				}			
+				}
 			}
 			// Publish as offline if last connection was >30s ago.
 			if time.Now().Sub(m.lastConnect) > 30*time.Second {
@@ -378,7 +375,6 @@ func (m *mqttClient) handleIncomingMqtt(mqtt_client mqtt.Client, msg mqtt.Messag
 func (m *mqttClient) handlePhev(cmd *cobra.Command) error {
 	var err error
 
-	viper.BindPFlag("address", cmd.Flags().Lookup("address"))
 	address := viper.GetString("address")
 	m.phev, err = client.New(client.AddressOption(address))
 	if err != nil {
