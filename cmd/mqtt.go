@@ -214,6 +214,11 @@ func (m *mqttClient) Run(cmd *cobra.Command, args []string) error {
 					log.Error(err)
 					m.lastError = err
 				}
+				// Exit MQTT loop in case the connection is lost and not restored
+				if !m.client.IsConnected() {
+					log.Errorf("Exiting MQTT loop: %v", err)
+					return err
+				}
 			}
 			// Publish as offline if last connection was >30s ago.
 			if time.Now().Sub(m.lastConnect) > 30*time.Second {
@@ -375,8 +380,7 @@ func (m *mqttClient) handleIncomingMqtt(mqtt_client mqtt.Client, msg mqtt.Messag
 func (m *mqttClient) handlePhev(cmd *cobra.Command) error {
 	var err error
 	address := viper.GetString("address")
-	m.phev, err = client.New(client.AddressOption(address))
-	if err != nil {
+	if m.phev, err = client.New(client.AddressOption(address)); err != nil {
 		return err
 	}
 
@@ -387,7 +391,10 @@ func (m *mqttClient) handlePhev(cmd *cobra.Command) error {
 	if err := m.phev.Start(); err != nil {
 		return err
 	}
-	m.client.Publish(m.topic("/available"), 0, true, "online")
+	
+	if token := m.client.Publish(m.topic("/available"), 0, true, "online"); token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
 
 	m.lastError = nil
 
@@ -425,13 +432,16 @@ func (m *mqttClient) handlePhev(cmd *cobra.Command) error {
 				if msg.Ack != protocol.Request {
 					break
 				}
-				m.publishRegister(msg)
+				err := m.publishRegister(msg)
 				m.phev.Send <- &protocol.PhevMessage{
 					Type:     protocol.CmdOutSend,
 					Register: msg.Register,
 					Ack:      protocol.Ack,
 					Xor:      msg.Xor,
 					Data:     []byte{0x0},
+				}
+				if err != nil {
+					return err
 				}
 			}
 		}
@@ -447,7 +457,11 @@ var boolOpen = map[bool]string{
 	true:  "open",
 }
 
-func (m *mqttClient) publishRegister(msg *protocol.PhevMessage) {
+func (m *mqttClient) publishRegister(msg *protocol.PhevMessage) error {
+	if !m.client.IsConnected() {
+		return fmt.Errorf("MQTT is disconnected")
+	}
+
 	dataStr := hex.EncodeToString(msg.Data)
 	m.publish(fmt.Sprintf("/register/%02x", msg.Register), dataStr)
 	switch reg := msg.Reg.(type) {
@@ -509,6 +523,8 @@ func (m *mqttClient) publishRegister(msg *protocol.PhevMessage) {
 			m.publish("/charge/plug", "unplugged")
 		}
 	}
+
+	return nil
 }
 
 // Publish home assistant discovery message.
