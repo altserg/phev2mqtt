@@ -410,11 +410,23 @@ func (m *mqttClient) handlePhev(cmd *cobra.Command) error {
 		select {
 		case <-updaterTicker.C:
 			m.phev.SetRegister(0x6, []byte{0x3})
+			// Exit MQTT loop in case the connection is lost and not restored
+			if !m.client.IsConnected() {
+				m.phev.Close()
+				updaterTicker.Stop()
+				return fmt.Errorf("MQTT is disconnected in handlePHEV() Ticker")
+			}
 		case msg, ok := <-m.phev.Recv:
 			if !ok {
 				log.Infof("Connection closed.")
 				updaterTicker.Stop()
 				return fmt.Errorf("Connection closed.")
+			}
+			// Exit MQTT loop in case the connection is lost and not restored
+			if !m.client.IsConnected() {
+				m.phev.Close()
+				updaterTicker.Stop()
+				return fmt.Errorf("MQTT is disconnected in handlePHEV() Recv")
 			}
 			switch msg.Type {
 			case protocol.CmdInBadEncoding:
@@ -432,16 +444,13 @@ func (m *mqttClient) handlePhev(cmd *cobra.Command) error {
 				if msg.Ack != protocol.Request {
 					break
 				}
-				err := m.publishRegister(msg)
+				m.publishRegister(msg)
 				m.phev.Send <- &protocol.PhevMessage{
 					Type:     protocol.CmdOutSend,
 					Register: msg.Register,
 					Ack:      protocol.Ack,
 					Xor:      msg.Xor,
 					Data:     []byte{0x0},
-				}
-				if err != nil {
-					return err
 				}
 			}
 		}
@@ -458,10 +467,6 @@ var boolOpen = map[bool]string{
 }
 
 func (m *mqttClient) publishRegister(msg *protocol.PhevMessage) error {
-	if !m.client.IsConnected() {
-		return fmt.Errorf("MQTT is disconnected")
-	}
-
 	dataStr := hex.EncodeToString(msg.Data)
 	m.publish(fmt.Sprintf("/register/%02x", msg.Register), dataStr)
 	switch reg := msg.Reg.(type) {
